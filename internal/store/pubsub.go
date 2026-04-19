@@ -37,7 +37,7 @@ func (ps *PubSub) Unsubscribe(topic string, ch chan string) {
 	}
 }
 
-// Publish sends the given topic.
+// Publish sends the given message to all subscribers of the given topic.
 func (ps *PubSub) Publish(topic, message string) {
 	ps.mu.RLock()
 	defer ps.mu.RUnlock()
@@ -58,4 +58,11 @@ func (ps *PubSub) Topics() []string {
 		topics = append(topics, t)
 	}
 	return topics
+}
+
+// SubscriberCount returns the number of active subscribers for the given topic.
+func (ps *PubSub) SubscriberCount(topic string) int {
+	ps.mu.RLock()
+	defer ps.mu.RUnlock()
+	return len(ps.subscribers[topic])
 }
