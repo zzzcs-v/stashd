@@ -41,10 +41,17 @@ curl http://localhost:8080/keys/mykey
 curl -X DELETE http://localhost:8080/keys/mykey
 ```
 
+**List all keys:**
+
+```bash
+curl http://localhost:8080/keys
+```
+
 ### API Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
+| `GET` | `/keys` | List all keys |
 | `GET` | `/keys/:key` | Retrieve a value |
 | `PUT` | `/keys/:key` | Set a value with optional TTL |
 | `DELETE` | `/keys/:key` | Delete a key |
