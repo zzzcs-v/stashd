@@ -1,19 +1,13 @@
 package api
 
-import (
-	"net/http"
+import "net/http"
 
-	"github.com/user/stashd/internal/store"
-)
-
-func NewRouter(s *store.Store) http.Handler {
-	h := NewHandler(s)
+// NewRouter wires up all routes for the stashd HTTP API.
+func NewRouter(h *Handler) http.Handler {
 	mux := http.NewServeMux()
-
-	mux.HandleFunc("GET /keys/{key}", h.Get)
-	mux.HandleFunc("PUT /keys/{key}", h.Set)
-	mux.HandleFunc("DELETE /keys/{key}", h.Delete)
-	mux.HandleFunc("GET /keys/{key}/ttl", h.TTL)
-
+	mux.HandleFunc("/get", h.handleGet)
+	mux.HandleFunc("/set", h.handleSet)
+	mux.HandleFunc("/delete", h.handleDelete)
+	mux.HandleFunc("/snapshot", h.handleSnapshot)
 	return mux
 }
