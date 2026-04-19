@@ -14,6 +14,13 @@ func (h *Handler) listHandler(w http.ResponseWriter, r *http.Request) {
 	prefix := r.URL.Query().Get("prefix")
 	keys := h.store.List(prefix)
 
+	// Return an empty array instead of null when there are no keys
+	if keys == nil {
+		keys = []string{}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string][]string{"keys": keys})
+	if err := json.NewEncoder(w).Encode(map[string][]string{"keys": keys}); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
 }
