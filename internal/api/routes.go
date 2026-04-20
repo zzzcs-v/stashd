@@ -2,46 +2,68 @@ package api
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/user/stashd/internal/store"
 )
 
-func NewRouter(s *store.Store, ps *store.PubSub, wm *store.WatchManager, lm *store.LockManager) http.Handler {
-	h := NewHandler(s)
-	snap := &snapshotHandler{store: s}
-	stats := &statsHandler{store: s}
-	ns := &namespaceHandler{store: s}
-	list := &listHandler{store: s}
-	counter := &counterHandler{store: s}
-	batch := struct {
-		set http.HandlerFunc
-		get http.HandlerFunc
-		del http.HandlerFunc
-	}{batchSetHandler(s), batchGetHandler(s), batchDeleteHandler(s)}
-	lockH := NewLockHandler(lm)
-	pubsubH := NewPubSubHandler(ps)
-	rlH := NewRateLimitHandler(100, time.Minute)
-
+// NewRouter wires up all API routes and returns the root mux.
+func NewRouter(
+	s *store.Store,
+	wm *store.WatchManager,
+	ps *store.PubSub,
+	lm *store.LockManager,
+	rl *store.RateLimiter,
+	q *store.Queue,
+	lb *store.LeaderboardManager,
+	bm *store.Bitmap,
+) http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/get", h.getHandler)
-	mux.HandleFunc("/set", h.setHandler)
-	mux.HandleFunc("/delete", h.deleteHandler)
-	mux.HandleFunc("/snapshot", snap.handleSnapshot)
-	mux.HandleFunc("/stats", stats.handleStats)
-	mux.HandleFunc("/namespace/list", ns.listNamespaceHandler)
-	mux.HandleFunc("/namespace/delete", ns.deleteNamespaceHandler)
-	mux.HandleFunc("/list", list.handleList)
-	mux.HandleFunc("/incr", counter.incrHandler)
-	mux.HandleFunc("/decr", counter.decrHandler)
-	mux.HandleFunc("/batch/set", batch.set)
-	mux.HandleFunc("/batch/get", batch.get)
-	mux.HandleFunc("/batch/delete", batch.del)
-	mux.HandleFunc("/lock", lockH.HandleLock)
-	mux.HandleFunc("/publish", pubsubH.PublishHandler)
-	mux.HandleFunc("/subscribe", pubsubH.SubscribeHandler)
+
+	h := NewHandler(s)
+	mux.HandleFunc("/get", h.Get)
+	mux.HandleFunc("/set", h.Set)
+	mux.HandleFunc("/delete", h.Delete)
+	mux.HandleFunc("/ttl", h.TTL)
+	mux.HandleFunc("/touch", h.Touch)
+
+	mux.HandleFunc("/snapshot", snapshotHandler(s))
+	mux.HandleFunc("/stats", statsHandler(s))
+	mux.HandleFunc("/list", listHandler(s))
+
 	mux.HandleFunc("/watch", watchHandler(wm))
-	mux.HandleFunc("/ratelimit/check", rlH.CheckHandler)
-	mux.HandleFunc("/ratelimit/reset", rlH.ResetHandler)
+
+	mux.Handle("/ns/", namespaceHandler(s))
+
+	pubsubH := NewPubSubHandler(ps)
+	mux.HandleFunc("/publish", pubsubH.Publish)
+	mux.HandleFunc("/subscribe", pubsubH.Subscribe)
+
+	counterH := counterHandler(s)
+	mux.HandleFunc("/incr", counterH)
+	mux.HandleFunc("/decr", counterH)
+
+	lockH := NewLockHandler(lm)
+	mux.Handle("/lock/", lockH)
+
+	mux.Handle("/batch/", batchHandler(s))
+
+	rlH := NewRateLimitHandler(rl)
+	mux.Handle("/ratelimit/", rlH)
+
+	qH := NewQueueHandler(q)
+	mux.Handle("/queue/", qH)
+
+	lbH := NewLeaderboardHandler(lb)
+	mux.Handle("/leaderboard/", lbH)
+
+	setH := NewSetHandler(s)
+	mux.Handle("/set/", setH)
+
+	hmH := NewHashMapHandler(s)
+	mux.Handle("/hash/", hmH)
+
+	bitmapH := NewBitmapHandler(bm)
+	mux.Handle("/bitmap/", bitmapH)
+
 	return mux
 }
