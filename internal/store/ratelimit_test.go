@@ -58,3 +58,11 @@ func TestRateLimitIsolation(t *testing.T) {
 		t.Fatal("different keys should be independent")
 	}
 }
+
+func TestRateLimitRemainingUnknownKey(t *testing.T) {
+	rl := NewRateLimiter(5, time.Second)
+	// A key that has never been used should report the full limit as remaining.
+	if got := rl.Remaining("never-used"); got != 5 {
+		t.Fatalf("expected 5 remaining for unknown key, got %d", got)
+	}
+}
