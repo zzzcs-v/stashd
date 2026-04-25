@@ -21,25 +21,27 @@ func newLeaderboardServer() *httptest.Server {
 	return httptest.NewServer(r)
 }
 
+// postScore is a test helper that submits a score for a member on a given board.
+func postScore(t *testing.T, srvURL, board, member string, score float64, mode string) {
+	t.Helper()
+	body, _ := json.Marshal(map[string]interface{}{"score": score, "mode": mode})
+	resp, err := http.Post(srvURL+"/leaderboard/"+board+"/score/"+member, "application/json", bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		t.Errorf("expected 204, got %d", resp.StatusCode)
+	}
+}
+
 func TestLeaderboardScoreAndTop(t *testing.T) {
 	srv := newLeaderboardServer()
 	defer srv.Close()
 
-	postScore := func(board, member string, score float64, mode string) {
-		body, _ := json.Marshal(map[string]interface{}{"score": score, "mode": mode})
-		resp, err := http.Post(srv.URL+"/leaderboard/"+board+"/score/"+member, "application/json", bytes.NewReader(body))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusNoContent {
-			t.Errorf("expected 204, got %d", resp.StatusCode)
-		}
-	}
-
-	postScore("game", "alice", 100, "add")
-	postScore("game", "bob", 200, "set")
-	postScore("game", "alice", 50, "add")
+	postScore(t, srv.URL, "game", "alice", 100, "add")
+	postScore(t, srv.URL, "game", "bob", 200, "set")
+	postScore(t, srv.URL, "game", "alice", 50, "add")
 
 	resp, err := http.Get(srv.URL + "/leaderboard/game/top?n=2")
 	if err != nil {
@@ -63,8 +65,7 @@ func TestLeaderboardRankHTTP(t *testing.T) {
 	srv := newLeaderboardServer()
 	defer srv.Close()
 
-	body, _ := json.Marshal(map[string]interface{}{"score": 300.0, "mode": "set"})
-	http.Post(srv.URL+"/leaderboard/lb/score/carol", "application/json", bytes.NewReader(body))
+	postScore(t, srv.URL, "lb", "carol", 300.0, "set")
 
 	resp, err := http.Get(srv.URL + "/leaderboard/lb/rank/carol")
 	if err != nil {
