@@ -27,7 +27,11 @@ func (h *HistogramManager) Observe(key string, value float64) {
 }
 
 // Quantile returns the q-th quantile (0.0–1.0) of the named histogram.
+// Returns an error if q is not in [0.0, 1.0] or the histogram is missing/empty.
 func (h *HistogramManager) Quantile(key string, q float64) (float64, error) {
+	if q < 0.0 || q > 1.0 {
+		return 0, fmt.Errorf("quantile %v out of range [0.0, 1.0]", q)
+	}
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	vals, ok := h.hists[key]
@@ -76,4 +80,16 @@ func (h *HistogramManager) Delete(key string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	delete(h.hists, key)
+}
+
+// Keys returns the names of all histograms currently stored.
+func (h *HistogramManager) Keys() []string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	keys := make([]string, 0, len(h.hists))
+	for k := range h.hists {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
