@@ -3,36 +3,54 @@ package api
 import (
 	"net/http"
 
-	"github.com/gorilla/mux"
-
-	"stashd/internal/store"
+	"github.com/radovskyb/stashd/internal/store"
 )
 
-// NewRouter builds the full mux.Router with all feature routes registered.
+// NewRouter builds and returns the main HTTP mux wiring all handlers.
 func NewRouter(
 	s *store.Store,
-	ps *store.PubSub,
+	pm *store.PubSub,
 	wm *store.WatchManager,
 	lm *store.LockManager,
+	mlm *store.MultiLockManager,
 	rl *store.RateLimiter,
 	q *store.Queue,
 	lb *store.LeaderboardManager,
 	gm *store.GeoManager,
 	hll *store.HyperLogLogManager,
+	bm *store.BloomManager,
+	dm *store.DequeManager,
+	sm *store.SortedSetManager,
+	tm *store.Trie,
 	jm *store.JSONDocManager,
+	rbm *store.RingBufferManager,
+	tsm *store.TimeSeriesManager,
+	se *store.ScriptEngine,
+	tr *store.TypeRegistry,
+	eat *store.ExpireAtManager,
+	hist *store.HistogramManager,
 ) http.Handler {
-	r := mux.NewRouter()
+	mux := http.NewServeMux()
 
-	NewHandler(r, s)
-	NewPubSubHandler(r, ps)
-	r.HandleFunc("/watch", watchHandler(wm))
-	NewLockHandler(r, lm)
-	NewRateLimitHandler(r, rl)
-	NewQueueHandler(r, q)
-	NewLeaderboardHandler(r, lb)
-	NewGeoHandler(r, gm)
-	NewHyperLogLogHandler(r, hll)
-	NewJSONDocHandler(r, jm)
+	NewHandler(mux, s)
+	NewPubSubHandler(mux, pm)
+	NewLockHandler(mux, lm)
+	NewRateLimitHandler(mux, rl)
+	NewQueueHandler(mux, q)
+	NewLeaderboardHandler(mux, lb)
+	NewGeoHandler(mux, gm)
+	NewHyperLogLogHandler(mux, hll)
+	NewBitmapHandler(mux, s)
+	NewDequeHandler(mux, dm)
+	NewSetHandler(mux, s)
+	NewHashMapHandler(mux, s)
+	NewJSONDocHandler(mux, jm)
+	NewRingBufferHandler(mux, rbm)
+	NewScriptHandler(mux, se)
+	NewTransactionHandler(mux, s)
+	NewTypeCheckHandler(mux, tr)
+	NewExpireAtHandler(mux, eat)
+	NewHistogramHandler(mux, hist)
 
-	return r
+	return mux
 }
