@@ -89,3 +89,17 @@ func TestSetXXMissingKey(t *testing.T) {
 		t.Fatal("expected key to not exist")
 	}
 }
+
+func TestSetXXExpiredKey(t *testing.T) {
+	s := New()
+	s.Set("foo", "old", 1*time.Millisecond)
+	time.Sleep(5 * time.Millisecond)
+	updated := s.SetXX("foo", "new", 0)
+	if updated {
+		t.Fatal("expected SetXX to return false for expired key")
+	}
+	_, ok := s.Get("foo")
+	if ok {
+		t.Fatal("expected expired key to not exist after SetXX")
+	}
+}
