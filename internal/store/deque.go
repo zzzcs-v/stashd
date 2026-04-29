@@ -80,3 +80,15 @@ func (dm *DequeManager) Range(key string) []string {
 	copy(result, d.items)
 	return result
 }
+
+// Delete removes the deque associated with the given key entirely.
+// Returns true if the key existed and was removed, false if it was not found.
+func (dm *DequeManager) Delete(key string) bool {
+	dm.mu.Lock()
+	defer dm.mu.Unlock()
+	if _, ok := dm.deques[key]; !ok {
+		return false
+	}
+	delete(dm.deques, key)
+	return true
+}
