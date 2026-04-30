@@ -88,3 +88,16 @@ func (lm *LeaderboardManager) Rank(name, member string) (int, float64, error) {
 	}
 	return 0, 0, fmt.Errorf("member %q not found", member)
 }
+
+// Score returns the current score for a member in the named leaderboard.
+// Returns an error if the member does not exist.
+func (lm *LeaderboardManager) Score(name, member string) (float64, error) {
+	b := lm.board(name)
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	score, ok := b.scores[member]
+	if !ok {
+		return 0, fmt.Errorf("member %q not found", member)
+	}
+	return score, nil
+}
